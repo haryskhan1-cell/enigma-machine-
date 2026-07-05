@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Enigma — M3 Cipher Machine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap');
+
+  :root{
+    --bakelite: #17160f;
+    --bakelite-2: #221f16;
+    --panel: #2b271c;
+    --panel-2: #34301f;
+    --brass: #b08d4e;
+    --brass-light: #d4b46a;
+    --steel: #6b6558;
+    --amber: #ffb020;
+    --amber-glow: #ff8c1a;
+    --cream: #e9dfc4;
+    --ink: #0f0e0a;
+    --red: #a13a2c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% -10%, #2a2416 0%, transparent 60%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, transparent 2px),
+      var(--bakelite);
+    color: var(--cream);
+    font-family: 'Courier Prime', monospace;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 28px 14px 60px;
+  }
+  h1{
+    font-family:'Special Elite', cursive;
+    letter-spacing:6px;
+    text-transform:uppercase;
+    font-size: clamp(22px, 4vw, 34px);
+    color: var(--brass-light);
+    margin: 4px 0 2px;
+    text-shadow: 0 0 18px rgba(255,140,26,0.15);
+  }
+  .subtitle{
+    font-size:11px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color: var(--steel);
+    margin-bottom: 22px;
+  }
+  .machine{
+    width:100%;
+    max-width: 760px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border-radius: 10px;
+    padding: 22px;
+    box-shadow:
+      0 30px 60px rgba(0,0,0,0.55),
+      inset 0 1px 0 rgba(255,255,255,0.05),
+      inset 0 0 0 2px rgba(0,0,0,0.4);
+    border: 1px solid #443e2a;
+  }
+  .plate-label{
+    font-family:'Special Elite', cursive;
+    font-size:10px;
+    letter-spacing: 2px;
+    color: var(--steel);
+    text-transform:uppercase;
+    margin: 0 0 8px 2px;
+  }
+
+  /* ROTORS */
+  .rotor-bay{
+    background: var(--ink);
+    border-radius:6px;
+    padding: 16px 12px;
+    display:flex;
+    justify-content:center;
+    gap: 22px;
+    margin-bottom:18px;
+    box-shadow: inset 0 3px 10px rgba(0,0,0,0.6);
+  }
+  .rotor-unit{ text-align:center; }
+  .rotor-unit .rname{ font-size:10px; color:var(--brass); letter-spacing:2px; margin-bottom:6px;}
+  .rotor-window{
+    width:52px; height:64px;
+    background: linear-gradient(180deg,#0a0a08,#1c1a12);
+    border: 2px solid var(--brass);
+    border-radius: 4px;
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+  }
+  .rotor-letter{
+    font-family:'Special Elite', cursive;
+    font-size: 30px;
+    color: var(--cream);
+    transition: transform 0.12s ease;
+  }
+  .rotor-letter.spin{ transform: translateY(-4px); }
+  .rotor-btns{ display:flex; flex-direction:column; margin-top:6px; gap:3px;}
+  .rotor-btns button{
+    width:52px; height:20px;
+    background: var(--panel-2);
+    border:1px solid var(--steel);
+    color:var(--brass-light);
+    cursor:pointer;
+    border-radius:3px;
+    font-family:'Courier Prime', monospace;
+    font-size:11px;
+  }
+  .rotor-btns button:hover{ background: var(--brass); color:var(--ink);}
+  .rotor-select{
+    margin-top:6px;
+    width:56px;
+    background:var(--panel-2);
+    color:var(--cream);
+    border:1px solid var(--steel);
+    border-radius:3px;
+    font-family:'Courier Prime', monospace;
+    font-size:10px;
+  }
+
+  /* LAMPBOARD */
+  .board{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    margin: 6px 0 16px;
+  }
+  .board-row{ display:flex; gap:6px; }
+  .lamp{
+    width:34px; height:34px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #3a3626, #17150e 70%);
+    border: 1px solid #4a4530;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px;
+    color: #5c5641;
+    font-family:'Special Elite', cursive;
+    transition: all 0.08s ease;
+  }
+  .lamp.lit{
+    background: radial-gradient(circle at 35% 30%, var(--amber), var(--amber-glow) 70%);
+    color: #2a1600;
+    box-shadow: 0 0 18px 4px rgba(255,150,30,0.75), 0 0 4px rgba(255,150,30,0.9);
+    border-color: var(--amber);
+  }
+
+  /* KEYBOARD */
+  .keys{
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+    margin-bottom: 18px;
+  }
+  .key-row{ display:flex; gap:6px; }
+  .key{
+    width:34px; height:34px;
+    border-radius:50%;
+    background: linear-gradient(180deg, #2f2b1d, #201d13);
+    border: 1px solid var(--brass);
+    color: var(--brass-light);
+    font-family:'Courier Prime', monospace;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow: 0 3px 0 #14120c, 0 4px 6px rgba(0,0,0,0.5);
+    transition: transform 0.05s ease, box-shadow 0.05s ease;
+  }
+  .key:active, .key.pressed{
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #14120c;
+    background: var(--brass);
+    color: var(--ink);
+  }
+
+  /* PLUGBOARD */
+  .plugboard{
+    background: var(--ink);
+    border-radius:6px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .plug-grid{ display:flex; flex-wrap:wrap; gap:5px; justify-content:center;}
+  .plug-slot{
+    width:26px; height:26px;
+    border-radius:4px;
+    background: var(--panel-2);
+    border:1px solid var(--steel);
+    color: var(--cream);
+    font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-family:'Courier Prime', monospace;
+  }
+  .plug-slot.active{ background: var(--red); border-color:#d4695a; color:#fff;}
+  .plug-hint{ font-size:10px; color:var(--steel); text-align:center; margin-top:8px; letter-spacing:1px;}
+
+  /* TEXT PANELS */
+  .io{ display:flex; flex-direction:column; gap:10px; }
+  textarea{
+    width:100%;
+    background: var(--ink);
+    color: var(--amber);
+    border: 1px solid var(--brass);
+    border-radius: 6px;
+    font-family:'Courier Prime', monospace;
+    font-size: 15px;
+    letter-spacing: 2px;
+    padding: 10px;
+    resize: vertical;
+    min-height: 56px;
+  }
+  textarea::placeholder{ color: #6b6552; letter-spacing:1px;}
+  .controls{ display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;}
+  .btn{
+    background: linear-gradient(180deg, var(--brass-light), var(--brass));
+    border: none;
+    color: var(--ink);
+    padding: 8px 16px;
+    border-radius: 5px;
+    font-family:'Special Elite', cursive;
+    letter-spacing:1px;
+    cursor:pointer;
+    text-transform:uppercase;
+    font-size:12px;
+  }
+  .btn.secondary{
+    background: var(--panel-2);
+    color: var(--cream);
+    border: 1px solid var(--steel);
+  }
+  footer{
+    margin-top:20px;
+    color: var(--steel);
+    font-size:10px;
+    letter-spacing:1px;
+    text-align:center;
+    max-width:600px;
+  }
+  @media (max-width: 480px){
+    .lamp, .key{ width:28px; height:28px; font-size:12px;}
+    .rotor-window{ width:42px; height:52px;}
+    .rotor-letter{ font-size:24px;}
+  }
+</style>
+</head>
+<body>
+
+<h1>Enigma</h1>
+<div class="subtitle">Wehrmacht Model I · Rotor Cipher Simulator</div>
+
+<div class="machine">
+
+  <div class="plate-label">Rotor Bank — Position &amp; Type</div>
+  <div class="rotor-bay" id="rotorBay"></div>
+
+  <div class="plate-label">Plugboard (Steckerbrett) — click letters in pairs</div>
+  <div class="plugboard">
+    <div class="plug-grid" id="plugGrid"></div>
+    <div class="plug-hint" id="plugHint">0 pairs connected</div>
+  </div>
+
+  <div class="plate-label">Lampboard</div>
+  <div class="board" id="lampBoard"></div>
+
+  <div class="plate-label">Keyboard — type below or click keys</div>
+  <div class="keys" id="keyBoard"></div>
+
+  <div class="plate-label">Message</div>
+  <div class="io">
+    <textarea id="inputText" placeholder="Type your message here (letters only)..." autocomplete="off" spellcheck="false"></textarea>
+    <textarea id="outputText" placeholder="Ciphertext appears here..." readonly></textarea>
+    <div class="controls">
+      <button class="btn" id="copyBtn">Copy Output</button>
+      <button class="btn secondary" id="resetBtn">Reset Rotors</button>
+      <button class="btn secondary" id="clearBtn">Clear</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Historically accurate rotor wirings (I–V) &amp; reflector B, including the double-step anomaly.
+  To decrypt: set the identical rotor types, ring settings, starting positions and plugboard pairs, then type the ciphertext back in — Enigma is symmetric.
+</footer>
+
+<script>
+(function(){
+  const ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  const ROTORS = {
+    I:   { wiring: "EKMFLGDQVZNTOWYHXUSPAIBRCJ", notch: "Q" },
+    II:  { wiring: "AJDKSIRUXBLHWTMCQGZNPYFVOE", notch: "E" },
+    III: { wiring: "BDFHJLCPRTXVZNYEIWGAKMUSQO", notch: "V" },
+    IV:  { wiring: "ESOVPZJAYQUIRHXLNFTGKDCMWB", notch: "J" },
+    V:   { wiring: "VZBRGITYUPSDNHLXAWMJQOFECK", notch: "Z" }
+  };
+  const REFLECTOR_B = "YRUHQSLDPXNGOKMIEBFZCWVJAT";
+
+  const KEY_ROWS = [
+    "QWERTZUIO".split(""),
+    "ASDFGHJK".split(""),
+    "PYXCVBNML".split("")
+  ];
+
+  const mod = (n,m) => ((n % m) + m) % m;
+
+  // ----- state -----
+  let rotorTypes = ["I","II","III"];       // left, middle, right
+  let ringSettings = [0,0,0];
+  let positions = [0,0,0];                  // 0 = A
+  let plugboard = {};                       // letter -> letter
+  let plugSelection = null;
+
+  // ----- build rotor UI -----
+  const rotorBay = document.getElementById('rotorBay');
+  function buildRotors(){
+    rotorBay.innerHTML = "";
+    const labels = ["LEFT","MIDDLE","RIGHT"];
+    for(let i=0;i<3;i++){
+      const unit = document.createElement('div');
+      unit.className = 'rotor-unit';
+      unit.innerHTML = `
+        <div class="rname">${labels[i]}</div>
+        <div class="rotor-window"><div class="rotor-letter" id="rl${i}">${ALPHA[positions[i]]}</div></div>
+        <div class="rotor-btns">
+          <button data-i="${i}" data-dir="1">▲</button>
+          <button data-i="${i}" data-dir="-1">▼</button>
+        </div>
+        <select class="rotor-select" data-i="${i}">
+          ${Object.keys(ROTORS).map(r=>`<option value="${r}" ${rotorTypes[i]===r?'selected':''}>${r}</option>`).join("")}
+        </select>
+      `;
+      rotorBay.appendChild(unit);
+    }
+    rotorBay.querySelectorAll('button').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const i = +b.dataset.i, dir = +b.dataset.dir;
+        positions[i] = mod(positions[i]+dir, 26);
+        document.getElementById('rl'+i).textContent = ALPHA[positions[i]];
+      });
+    });
+    rotorBay.querySelectorAll('select').forEach(s=>{
+      s.addEventListener('change', ()=>{
+        rotorTypes[+s.dataset.i] = s.value;
+      });
+    });
+  }
+  buildRotors();
+
+  // ----- plugboard UI -----
+  const plugGrid = document.getElementById('plugGrid');
+  function buildPlugboard(){
+    plugGrid.innerHTML = "";
+    ALPHA.split("").forEach(letter=>{
+      const el = document.createElement('div');
+      el.className = 'plug-slot';
+      el.textContent = letter;
+      el.dataset.letter = letter;
+      el.addEventListener('click', ()=>onPlugClick(letter, el));
+      plugGrid.appendChild(el);
+    });
+  }
+  function refreshPlugUI(){
+    document.querySelectorAll('.plug-slot').forEach(el=>{
+      el.classList.toggle('active', !!plugboard[el.dataset.letter]);
+    });
+    const pairs = Object.keys(plugboard).length/2;
+    document.getElementById('plugHint').textContent = pairs + " pair" + (pairs===1?"":"s") + " connected (max 10)";
+  }
+  function onPlugClick(letter, el){
+    if(plugboard[letter]){
+      // unplug
+      const partner = plugboard[letter];
+      delete plugboard[letter];
+      delete plugboard[partner];
+      refreshPlugUI();
+      return;
+    }
+    if(plugSelection === null){
+      plugSelection = letter;
+      el.style.outline = "2px solid var(--amber)";
+    } else if(plugSelection !== letter){
+      if(Object.keys(plugboard).length/2 >= 10){
+        plugSelection = null;
+        buildPlugboard(); refreshPlugUI();
+        return;
+      }
+      plugboard[plugSelection] = letter;
+      plugboard[letter] = plugSelection;
+      plugSelection = null;
+      buildPlugboard();
+      refreshPlugUI();
+    }
+  }
+  buildPlugboard();
+  refreshPlugUI();
+
+  // ----- lampboard + keyboard UI -----
+  const lampBoard = document.getElementById('lampBoard');
+  const keyBoard = document.getElementById('keyBoard');
+  const lampEls = {};
+  const keyEls = {};
+  KEY_ROWS.forEach(row=>{
+    const lrow = document.createElement('div'); lrow.className='board-row';
+    const krow = document.createElement('div'); krow.className='key-row';
+    row.forEach(letter=>{
+      const lamp = document.createElement('div');
+      lamp.className='lamp'; lamp.textContent=letter;
+      lampEls[letter]=lamp; lrow.appendChild(lamp);
+
+      const key = document.createElement('div');
+      key.className='key'; key.textContent=letter;
+      key.addEventListener('click', ()=>pressLetter(letter));
+      keyEls[letter]=key; krow.appendChild(key);
+    });
+    lampBoard.appendChild(lrow);
+    keyBoard.appendChild(krow);
+  });
+
+  function lightLamp(letter){
+    Object.values(lampEls).forEach(l=>l.classList.remove('lit'));
+    if(letter) lampEls[letter].classList.add('lit');
+  }
+  function flashKey(letter){
+    keyEls[letter].classList.add('pressed');
+    setTimeout(()=>keyEls[letter].classList.remove('pressed'), 90);
+  }
+
+  // ----- rotor stepping -----
+  function stepRotors(){
+    const notchMid = ROTORS[rotorTypes[1]].notch.charCodeAt(0) - 65;
+    const notchRight = ROTORS[rotorTypes[2]].notch.charCodeAt(0) - 65;
+    const middleAtNotch = positions[1] === notchMid;
+    const rightAtNotch = positions[2] === notchRight;
+
+    if(middleAtNotch){
+      positions[0] = mod(positions[0]+1,26);
+      positions[1] = mod(positions[1]+1,26);
+    } else if(rightAtNotch){
+      positions[1] = mod(positions[1]+1,26);
+    }
+    positions[2] = mod(positions[2]+1,26);
+
+    for(let i=0;i<3;i++){
+      const el = document.getElementById('rl'+i);
+      el.textContent = ALPHA[positions[i]];
+      el.classList.add('spin');
+      setTimeout(()=>el.classList.remove('spin'), 120);
+    }
+  }
+
+  function rotorForward(letterIdx, rotorKey, pos, ring){
+    const wiring = ROTORS[rotorKey].wiring;
+    const shifted = mod(letterIdx + pos - ring, 26);
+    const wired = wiring.charCodeAt(shifted) - 65;
+    return mod(wired - pos + ring, 26);
+  }
+  function rotorBackward(letterIdx, rotorKey, pos, ring){
+    const wiring = ROTORS[rotorKey].wiring;
+    const shifted = mod(letterIdx + pos - ring, 26);
+    const targetChar = ALPHA[shifted];
+    const wired = wiring.indexOf(targetChar);
+    return mod(wired - pos + ring, 26);
+  }
+
+  function encryptLetter(letter){
+    stepRotors();
+    let idx = letter.charCodeAt(0) - 65;
+
+    // plugboard in
+    if(plugboard[letter]) idx = plugboard[letter].charCodeAt(0)-65;
+
+    // right -> middle -> left
+    idx = rotorForward(idx, rotorTypes[2], positions[2], ringSettings[2]);
+    idx = rotorForward(idx, rotorTypes[1], positions[1], ringSettings[1]);
+    idx = rotorForward(idx, rotorTypes[0], positions[0], ringSettings[0]);
+
+    // reflector
+    idx = REFLECTOR_B.charCodeAt(idx) - 65;
+
+    // left -> middle -> right
+    idx = rotorBackward(idx, rotorTypes[0], positions[0], ringSettings[0]);
+    idx = rotorBackward(idx, rotorTypes[1], positions[1], ringSettings[1]);
+    idx = rotorBackward(idx, rotorTypes[2], positions[2], ringSettings[2]);
+
+    let outLetter = ALPHA[idx];
+    if(plugboard[outLetter]) outLetter = plugboard[outLetter];
+
+    return outLetter;
+  }
+
+  // ----- input handling -----
+  const inputText = document.getElementById('inputText');
+  const outputText = document.getElementById('outputText');
+
+  function pressLetter(letter){
+    flashKey(letter);
+    const out = encryptLetter(letter);
+    lightLamp(out);
+    outputText.value += out;
+  }
+
+  let lastLen = 0;
+  inputText.addEventListener('input', ()=>{
+    const raw = inputText.value.toUpperCase();
+    if(raw.length > lastLen){
+      const added = raw.slice(lastLen).split("").filter(c=>ALPHA.includes(c));
+      added.forEach(pressLetter);
+    } else {
+      // handle deletion by resetting output display only (rotors already advanced; keep simple)
+    }
+    lastLen = raw.length;
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    positions = [0,0,0];
+    buildRotors();
+    lightLamp(null);
+  });
+  document.getElementById('clearBtn').addEventListener('click', ()=>{
+    inputText.value = "";
+    outputText.value = "";
+    lastLen = 0;
+    lightLamp(null);
+  });
+  document.getElementById('copyBtn').addEventListener('click', ()=>{
+    outputText.select();
+    document.execCommand('copy');
+  });
+
+})();
+</script>
+</body>
+</html>
